@@ -1,0 +1,71 @@
+from aiogram import Bot, types
+from aiogram.dispatcher import Dispatcher
+from aiogram.utils import executor
+import psutil
+
+
+TOKEN = "5623963060:AAHvmoOB-SkIEP0DQlu2MtFz2-U_q6CcyL4"
+bot = Bot(token=TOKEN)
+dp = Dispatcher(bot)
+
+DESCRIPTION = '''
+Список доступных команд к использованию:
+/ram + число - покажет процент использованной оперативной памяти с заданным pid.;
+/cpu + число - покажет процент использованной операционной памяти с заданным pid.;
+/list num - покажет n-список процессов.
+'''
+
+
+def ram(pid):
+    return psutil.Process(pid).memory_percent()
+
+
+def cpu(pid):
+    return psutil.Process(pid).cpu_percent()
+
+
+@dp.message_handler(commands=['start'])
+async def process_start_command(message: types.Message):
+    await message.reply(DESCRIPTION)
+
+
+@dp.message_handler(commands=['list'])
+async def process_help_command(message: types.Message):
+    num = int(message.text.split()[-1])
+    rst = ""
+    for pid in psutil.pids()[:num]:
+        rst += str(pid) + "\n"
+    await bot.send_message(message.from_user.id, rst)
+
+
+@dp.message_handler(commands=['ram'])
+async def process_help_command(message: types.Message):
+    pid = int(message.text.split()[-1])
+    if not pid in psutil.pids():
+        await bot.send_message(
+            message.from_user.id,
+            "Нет процесса с заданным pid. "
+        )
+    else:
+        await bot.send_message(message.from_user.id, str(ram(pid)) + "%")
+
+
+@dp.message_handler(commands=['cpu'])
+async def process_help_command(message: types.Message):
+    pid = int(message.text.split()[-1])
+    if not pid in psutil.pids():
+        await bot.send_message(
+            message.from_user.id,
+            "Нет процесса с заданным pid."
+        )
+    else:
+        await bot.send_message(message.from_user.id, str(cpu(pid)) + "%")
+
+
+@dp.message_handler()
+async def echo_message(message: types.Message):
+    await bot.send_message(message.from_user.id, DESCRIPTION)
+
+
+if __name__ == '__main__':
+    executor.start_polling(dp)
